@@ -104,10 +104,7 @@ This can be :tab, :space, or nil (do nothing)."
 
 (eval-and-compile
   (defconst vasm-directives
-    '("absolute" "bits" "common" "cpu" "debug" "default" "extern"
-      "float" "global" "list" "section" "segment" "warning" "sectalign"
-      "export" "group" "import" "library" "map" "module" "org" "osabi"
-      "safeseh" "uppercase")
+    '()
     "NASM directives (directiv.c) for `vasm-mode'."))
 
 (eval-and-compile
@@ -139,12 +136,17 @@ This can be :tab, :space, or nil (do nothing)."
 
 (eval-and-compile
   (defconst vasm-pp-directives
-    '(".abyte" ".addr" ".align" ".asc" ".ascii" ".asciiz" ".org")
+    '(".abyte" ".addr" ".align" ".asc" ".ascii" ".asciiz" ".org" ".word" ".byte")
     "NASM preprocessor directives (pptok.c) for `vasm-mode'."))
 
 (defconst vasm-nonlocal-label-rexexp
   "\\(\\_<[a-zA-Z_?][a-zA-Z0-9_#@~?]*\\_>\\)\\s-*:"
   "Regexp for `vasm-mode' for matching nonlocal labels.")
+
+(defconst vasm-dotdir-regexp
+  "\\.[a-zA-Z0-9_-]+"
+  "Regexp for `vasm-mode' for matching dot directives.")
+
 
 (defconst vasm-local-label-regexp
   "\\(\\_<\\.[a-zA-Z_?][a-zA-Z0-9_#@~?]*\\_>\\)\\(?:\\s-*:\\)?"
@@ -245,21 +247,22 @@ is not immediately after a mnemonic; otherwise, we insert a tab."
            (let ((point (point))
                  (bti (progn (back-to-indentation) (point))))
              (buffer-substring-no-properties bti point)))))
-    (if (string-match vasm-full-instruction-regexp before)
-        ;; We are immediately after a mnemonic
+    (if (or (string-match vasm-full-instruction-regexp before)
+            (string-match (vasm--opt vasm-pp-directives) before))
+        ;; We are immediately after a mnemonic or dot directive
         (cl-case vasm-after-mnemonic-whitespace
           (:tab   (insert "\t"))
           (:space (insert-char ?\s vasm-basic-offset)))
       ;; We're literally anywhere else, indent the whole line
       (let ((orig (- (point-max) (point))))
         (back-to-indentation)
-        (if (or (looking-at (vasm--opt vasm-directives))
-                (looking-at (vasm--opt vasm-pp-directives))
-                (looking-at "\\[")
-                (looking-at ";;+")
-                (looking-at vasm-label-regexp))
-            (indent-line-to 0)
-          (indent-line-to vasm-basic-offset))
+        (cond
+         ((looking-at ";;+") (indent-line-to 0))
+         ((looking-at "\\.[a-zA-Z0-9_-]+ [$%a-zA-Z0-9_-]+") (indent-line-to vasm-basic-offset))
+         ((looking-at (vasm--opt vasm-pp-directives)) (indent-line-to vasm-basic-offset))
+         ((looking-at vasm-label-regexp) (indent-line-to 0))
+         ((looking-at vasm-constant-regexp) (indent-line-to 0))
+         (t (indent-line-to vasm-basic-offset)))
         (when (> (- (point-max) orig) (point))
           (goto-char (- (point-max) orig)))))))
 
