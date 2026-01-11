@@ -1,4 +1,4 @@
-# nasm-mode
+# vasm-mode
 
 `vasm-mode` is a major mode for editing [VASM][vasm] 6502 assembly
 programs. It includes syntax highlighting, automatic indentation, and
