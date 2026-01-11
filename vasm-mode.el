@@ -82,8 +82,18 @@ This can be :tab, :space, or nil (do nothing)."
   "Face for section name face."
   :group 'vasm-mode-faces)
 
+(defface vasm-numbers
+  '((t :inherit (font-lock-type-face)))
+  "Face for section name face."
+  :group 'vasm-mode-faces)
+
 (defface vasm-constant
   '((t :inherit (font-lock-constant-face)))
+  "Face for constant."
+  :group 'vasm-mode-faces)
+
+(defface vasm-imm
+  '((t :inherit (font-lock-keyword-face)))
   "Face for constant."
   :group 'vasm-mode-faces)
 
@@ -124,8 +134,7 @@ This can be :tab, :space, or nil (do nothing)."
 
 (eval-and-compile
   (defconst vasm-prefix
-    '("a16" "a32" "a64" "asp" "lock" "o16" "o32" "o64" "osp" "rep" "repe"
-      "repne" "repnz" "repz" "times" "wait" "xacquire" "xrelease" "bnd")
+    '()
     "NASM prefixes (nasmlib.c) for `vasm-mode'."))
 
 (eval-and-compile
@@ -134,11 +143,11 @@ This can be :tab, :space, or nil (do nothing)."
     "NASM preprocessor directives (pptok.c) for `vasm-mode'."))
 
 (defconst vasm-nonlocal-label-rexexp
-  "\\(\\_<[a-zA-Z_?][a-zA-Z0-9_$#@~?]*\\_>\\)\\s-*:"
+  "\\(\\_<[a-zA-Z_?][a-zA-Z0-9_#@~?]*\\_>\\)\\s-*:"
   "Regexp for `vasm-mode' for matching nonlocal labels.")
 
 (defconst vasm-local-label-regexp
-  "\\(\\_<\\.[a-zA-Z_?][a-zA-Z0-9_$#@~?]*\\_>\\)\\(?:\\s-*:\\)?"
+  "\\(\\_<\\.[a-zA-Z_?][a-zA-Z0-9_#@~?]*\\_>\\)\\(?:\\s-*:\\)?"
   "Regexp for `vasm-mode' for matching local labels.")
 
 (defconst vasm-label-regexp
@@ -146,11 +155,19 @@ This can be :tab, :space, or nil (do nothing)."
   "Regexp for `vasm-mode' for matching labels.")
 
 (defconst vasm-constant-regexp
-  "\\_<$?[-+]?[0-9][-+_0-9A-Fa-fHhXxDdTtQqOoBbYyeE.]*\\_>"
+  "^[ \t]*\\([a-zA-Z_][a-zA-Z0-9_]*\\)[ \t]*\\(?:=\\|equ\\|EQU\\)[ \t]"
   "Regexp for `vasm-mode' for matching numeric constants.")
 
+(defconst vasm-number-regexp
+  "\\(?:\\$[0-9A-Fa-f]+\\|%[01]+\\|[^a-zA-Z][0-9]+\\)"
+  "Regexp for `vasm-mode' for matching number types.")
+
+(defconst vasm-imm-regexp
+  "\\(?:#\\)"
+  "Regexp for `vasm-mode' for matching imm mode numbers.")
+
 (defconst vasm-section-name-regexp
-  "^\\s-*section[ \t]+\\(\\_<\\.[a-zA-Z0-9_$#@~.?]+\\_>\\)"
+  "^\\s-*section[ \t]+\\(\\_<\\.[a-zA-Z0-9_#@~.?]+\\_>\\)"
   "Regexp for `vasm-mode' for matching section names.")
 
 (defmacro vasm--opt (keywords)
@@ -181,7 +198,9 @@ This includes prefixes or modifiers (eg \"mov\", \"rep mov\", etc match)")
     (,(vasm--opt vasm-pp-directives) . 'vasm-preprocessor)
     (,(concat "^\\s-*" vasm-nonlocal-label-rexexp) (1 'vasm-labels))
     (,(concat "^\\s-*" vasm-local-label-regexp) (1 'vasm-local-labels))
+    (,vasm-imm-regexp . 'vasm-imm)
     (,vasm-constant-regexp . 'vasm-constant)
+    (,vasm-number-regexp . 'vasm-numbers)
     (,(vasm--opt vasm-directives) . 'vasm-directives))
   "Keywords for `vasm-mode'.")
 
